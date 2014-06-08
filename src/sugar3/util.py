@@ -29,6 +29,7 @@ import gettext
 import tempfile
 import logging
 import atexit
+import subprocess
 
 
 _ = lambda msg: gettext.dgettext('sugar-toolkit-gtk3', msg)
@@ -352,3 +353,44 @@ def format_size(size):
         return _('%d MB') % (size / 1024 ** 2)
     else:
         return _('%d GB') % (size / 1024 ** 3)
+
+
+def get_laptop_model():
+    """
+    Return Laptop model (1, 1.5, 1.75, 4, None = Unknown)
+    based on Walter's TurtleArt code
+    """
+
+    version = get_dmi('product_version')
+    if version is None:
+        hwinfo_path = '/bin/olpc-hwinfo'
+        if os.path.exists(hwinfo_path) and os.access(hwinfo_path, os.X_OK):
+            try:
+                model = subprocess.check_output([hwinfo_path, 'model'],
+                                                'unknown hardware')
+            except subprocess.CalledProcessError:
+                model = None
+            version = model.strip()
+
+    if version in ["1", "1.5", "1.75", "4"]:
+        return version
+    else:
+        # Some systems (e.g. ARM) don't have dmi info
+        if os.path.exists('/sys/devices/platform/lis3lv02d/position'):
+            return "1.75"
+        elif os.path.exists('/etc/olpc-release'):
+            return "1"
+        else:
+            return None
+
+
+def get_dmi(node):
+    """
+    The desktop management interface should be a reliable source
+    for product and version information.
+    """
+    path = os.path.join('/sys/class/dmi/id', node)
+    try:
+        return open(path).readline().strip()
+    except:
+        return None
