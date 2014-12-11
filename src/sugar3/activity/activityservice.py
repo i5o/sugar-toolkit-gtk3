@@ -81,3 +81,7 @@ class ActivityService(dbus.service.Object):
             self._activity.get_document_path(async_cb, async_err_cb)
         except Exception, e:
             async_err_cb(e)
+
+    @dbus.service.method(_ACTIVITY_INTERFACE)
+    def GetMaxParticipants(self):
+        return self._activity.get_max_participants()
